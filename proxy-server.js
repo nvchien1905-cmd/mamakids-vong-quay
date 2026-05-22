@@ -33,7 +33,7 @@ const CFG = {
   // ── Google Sheets ──────────────────────────────────────────
   GS_ENABLED:     _GS_ENABLED,
   GS_CREDENTIALS: _GS_CREDENTIALS_FILE, // file Service Account key (local)
-  GS_SHEET_ID:    '19Gn0hHao929TSI7GuhAUFtBpEsFjAlb0vvd_N7Xakoo',
+  GS_SHEET_ID:    '1ru5psp1WKT0qM8hCMeieD9O832L0-Rjm95DvXHKJUK4',
   GS_TAB:         'Lich su',            // tên tab trong Google Spreadsheet
 };
 // ════════════════════════════════════════════════════════════
@@ -291,10 +291,12 @@ function maskPhone(phone) {
 }
 
 async function getCustomerByPhone(phone) {
-  const token = await getToken();
+  const token     = await getToken();
+  const branchIds = await getTargetBranchIds();
+  const branchQs  = branchIds.length ? '&' + branchIds.map(id => `branchId=${id}`).join('&') : '';
   const data  = await httpsRequest({
     hostname: 'public.kiotapi.com',
-    path:     `/customers?contactNumber=${encodeURIComponent(phone)}&pageSize=5&includeCustomerGroup=true`,
+    path:     `/customers?contactNumber=${encodeURIComponent(phone)}&pageSize=5&includeCustomerGroup=true${branchQs}`,
     method:   'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
