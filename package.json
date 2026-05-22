@@ -1,0 +1,15 @@
+{
+  "name": "mamakids-vong-quay",
+  "version": "1.0.0",
+  "description": "Vòng Quay May Mắn — Mamakids",
+  "scripts": {
+    "start": "node proxy-server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "googleapis": "^171.4.0",
+    "qrcode": "^1.5.4"
+  }
+}
