@@ -393,7 +393,7 @@ const server = http.createServer(async (req, res) => {
 
   // ── Serve HTML ──────────────────────────────────────────────
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/mamakids-vong-quay.html')) {
-    const htmlPath = path.join(__dirname, 'mamakids-vong-quay.html');
+    const htmlPath = path.join(__dirname, 'public', 'mamakids-vong-quay.html');
     fs.readFile(htmlPath, (err, data) => {
       if (err) { sendJSON(res, 500, { error: 'Khong doc duoc file HTML' }); return; }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', ...CORS_HEADERS });

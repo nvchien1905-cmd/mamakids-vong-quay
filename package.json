@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Vòng Quay May Mắn — Mamakids",
   "scripts": {
-    "start": "node proxy-server.js"
+    "start": "node proxy-server.js",
+    "dev": "npx wrangler dev",
+    "deploy": "npx wrangler deploy"
   },
   "keywords": [],
   "author": "",
@@ -11,5 +13,8 @@
   "dependencies": {
     "googleapis": "^171.4.0",
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
   }
 }
