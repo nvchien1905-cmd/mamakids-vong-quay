@@ -309,13 +309,15 @@ async function handleInvoices(url) {
     const branchQs  = buildBranchQs(branchIds);
 
     // Kiểm tra SĐT tồn tại, filter theo chi nhánh Mamakids
-    const custData = await kiotFetch(
+    const custData  = await kiotFetch(
       `/customers?contactNumber=${encodeURIComponent(phone)}&pageSize=1${branchQs}`
     );
-    if (!(custData.data || []).length) return jsonResp([]);
+    const customers = custData.data || [];
+    if (!customers.length) return jsonResp([]);
+    const customerId = customers[0].id;
 
     const data = await kiotFetch(
-      `/invoices?pageSize=100&customerTel=${encodeURIComponent(phone)}&orderDirection=Desc&status=1${branchQs}`
+      `/invoices?pageSize=100&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`
     );
     const invoices = (data.data || []).filter(inv =>
       branchIds.length === 0 || branchIds.includes(inv.branchId)
@@ -342,9 +344,9 @@ async function handleInvoice(url) {
     if (!customers.length) return jsonResp({ valid: false, reason: 'PHONE_NOT_FOUND' });
     const customerId = String(customers[0].id);
 
-    // Bước 2: Lấy hóa đơn theo branch
+    // Bước 2: Lấy hóa đơn theo customerId (Mamakids invoices không có customerTel)
     const data     = await kiotFetch(
-      `/invoices?pageSize=100&customerTel=${encodeURIComponent(phone)}&orderDirection=Desc&status=1${branchQs}`
+      `/invoices?pageSize=100&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`
     );
     const invoices = data.data || [];
 

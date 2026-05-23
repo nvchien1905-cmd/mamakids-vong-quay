@@ -238,10 +238,10 @@ function buildBranchQs(ids) {
   return ids.length ? '&' + ids.map(id => `branchId=${id}`).join('&') : '';
 }
 
-async function getInvoices(phone) {
+async function getInvoices(customerId) {
   const token     = await getToken();
   const branchIds = await getTargetBranchIds();
-  const qs        = `/invoices?pageSize=100&customerTel=${encodeURIComponent(phone)}&orderDirection=Desc&status=1${buildBranchQs(branchIds)}`;
+  const qs        = `/invoices?pageSize=100&customerId=${customerId}&orderDirection=Desc&status=1${buildBranchQs(branchIds)}`;
   const data  = await httpsRequest({
     hostname: 'public.kiotapi.com',
     path:     qs,
@@ -437,11 +437,10 @@ const server = http.createServer(async (req, res) => {
 
     console.log(`[Invoices] SDT: ${phone}`);
     try {
-      // Kiểm tra SĐT tồn tại trước — KiotViet trả hóa đơn ngẫu nhiên khi customerTel không khớp
       const custData = await getCustomerByPhone(phone);
       if (!custData.length) { sendJSON(res, 200, []); return; }
 
-      const invoices = await getInvoices(phone);
+      const invoices = await getInvoices(custData[0].id);
       console.log(`[Invoices] SDT ${phone} -> ${invoices.length} hoa don`);
       sendJSON(res, 200, invoices);
     } catch (err) {
@@ -459,13 +458,15 @@ const server = http.createServer(async (req, res) => {
 
     console.log(`[Invoice] SDT: ${phone} | Ma: ${code}`);
     try {
-      const invoices = await getInvoices(phone);
-      if (!invoices.length) { sendJSON(res, 200, { valid: false, reason: 'PHONE_NOT_FOUND' }); return; }
+      const custData = await getCustomerByPhone(phone);
+      if (!custData.length) { sendJSON(res, 200, { valid: false, reason: 'PHONE_NOT_FOUND' }); return; }
+
+      const invoices = await getInvoices(custData[0].id);
+      if (!invoices.length) { sendJSON(res, 200, { valid: false, reason: 'CODE_NOT_FOUND' }); return; }
 
       const inv = invoices.find(i => (i.code || '').toUpperCase() === code || String(i.id) === code);
       if (!inv) { sendJSON(res, 200, { valid: false, reason: 'CODE_NOT_FOUND' }); return; }
 
-      // Xác minh hóa đơn thuộc đúng 3 chi nhánh (API lọc không hoàn hảo)
       const branchIds = await getTargetBranchIds();
       if (branchIds.length > 0 && !branchIds.includes(inv.branchId)) {
         sendJSON(res, 200, { valid: false, reason: 'WRONG_BRANCH' });
