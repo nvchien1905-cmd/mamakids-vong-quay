@@ -140,13 +140,15 @@ async function getCustomerGroups() {
 
 async function getAllInvoicesByCustomer(customerId) {
   const branchIds = await getTargetBranchIds();
-  const branchQs  = buildBranchQs(branchIds);
   const all = [];
   let currentItem = 0;
   const pageSize  = 100;
-  while (true) {
+  const maxPages  = 3; // tối đa 300 HĐ gần nhất — tránh vượt giới hạn subrequest Workers
+  // KiotViet không filter đúng khi kết hợp customerId+branchId, nên bỏ branchQs ở đây
+  // Filter theo branch sẽ thực hiện trong code sau khi nhận kết quả
+  for (let page = 0; page < maxPages; page++) {
     const data  = await kiotFetch(
-      `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`
+      `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc`
     );
     const items = data.data || [];
     all.push(...items);
@@ -462,7 +464,9 @@ async function handleLoyalty(url) {
       try {
         const allInvs = await getAllInvoicesByCustomer(c.id);
         totalInvoiced = allInvs.reduce((sum, inv) => sum + (inv.total || inv.totalPayment || 0), 0);
-      } catch { /* bỏ qua */ }
+      } catch (err) {
+        console.error('[Loyalty] getAllInvoicesByCustomer error:', err.message);
+      }
     }
 
     let matchedGroup = null;

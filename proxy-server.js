@@ -258,14 +258,15 @@ async function getInvoices(customerId) {
 async function getAllInvoicesByCustomer(customerId) {
   const token     = await getToken();
   const branchIds = await getTargetBranchIds();
-  const branchQs  = buildBranchQs(branchIds);
   const all = [];
   let currentItem = 0;
   const pageSize  = 100;
-  while (true) {
+  const maxPages  = 3; // tối đa 300 HĐ gần nhất
+  // KiotViet không filter đúng khi kết hợp customerId+branchId, filter trong code sau
+  for (let page = 0; page < maxPages; page++) {
     const data = await httpsRequest({
       hostname: 'public.kiotapi.com',
-      path:     `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`,
+      path:     `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc`,
       method:   'GET',
       headers:  { 'Authorization': `Bearer ${token}`, 'Retailer': CFG.RETAILER },
     });
