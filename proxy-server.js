@@ -255,6 +255,28 @@ async function getInvoices(customerId) {
   return invoices.filter(inv => branchIds.length === 0 || branchIds.includes(inv.branchId));
 }
 
+async function getAllInvoicesByCustomer(customerId) {
+  const token     = await getToken();
+  const branchIds = await getTargetBranchIds();
+  const branchQs  = buildBranchQs(branchIds);
+  const all = [];
+  let currentItem = 0;
+  const pageSize  = 100;
+  while (true) {
+    const data = await httpsRequest({
+      hostname: 'public.kiotapi.com',
+      path:     `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`,
+      method:   'GET',
+      headers:  { 'Authorization': `Bearer ${token}`, 'Retailer': CFG.RETAILER },
+    });
+    const items = data.data || [];
+    all.push(...items);
+    if (items.length < pageSize) break;
+    currentItem += pageSize;
+  }
+  return branchIds.length === 0 ? all : all.filter(inv => branchIds.includes(inv.branchId));
+}
+
 async function getMonthlyInvoices() {
   const token     = await getToken();
   const branchIds = await getTargetBranchIds();
@@ -562,14 +584,14 @@ const server = http.createServer(async (req, res) => {
       const c = customers[0];
       const { groupId, groupName } = extractGroupInfo(c);
 
-      // Lấy chi tiết khách để có totalInvoiced (list endpoint không trả về field này)
-      let totalInvoiced = c.totalInvoiced || 0;
-      if (!totalInvoiced && c.id) {
+      // Tính tổng chi tiêu chỉ từ 2 chi nhánh MMK (KiotViet totalInvoiced là toàn hệ thống)
+      let totalInvoiced = 0;
+      if (c.id) {
         try {
-          const detail  = await getCustomerDetail(c.id);
-          totalInvoiced = detail.totalInvoiced || detail.totalRevenue || 0;
+          const allInvs = await getAllInvoicesByCustomer(c.id);
+          totalInvoiced = allInvs.reduce((sum, inv) => sum + (inv.total || inv.totalPayment || 0), 0);
         } catch (err) {
-          console.warn(`[Loyalty] Khong lay duoc chi tiet khach ${c.id}:`, err.message);
+          console.warn(`[Loyalty] Khong tinh duoc tong chi tieu khach ${c.id}:`, err.message);
         }
       }
 

@@ -138,6 +138,24 @@ async function getCustomerGroups() {
   return _groupsCache;
 }
 
+async function getAllInvoicesByCustomer(customerId) {
+  const branchIds = await getTargetBranchIds();
+  const branchQs  = buildBranchQs(branchIds);
+  const all = [];
+  let currentItem = 0;
+  const pageSize  = 100;
+  while (true) {
+    const data  = await kiotFetch(
+      `/invoices?pageSize=${pageSize}&currentItem=${currentItem}&customerId=${customerId}&orderDirection=Desc&status=1${branchQs}`
+    );
+    const items = data.data || [];
+    all.push(...items);
+    if (items.length < pageSize) break;
+    currentItem += pageSize;
+  }
+  return branchIds.length === 0 ? all : all.filter(inv => branchIds.includes(inv.branchId));
+}
+
 async function getMonthlyInvoices(env) {
   const branchIds = await getTargetBranchIds();
   const branchQs  = buildBranchQs(branchIds);
@@ -438,11 +456,12 @@ async function handleLoyalty(url) {
     const c = customers[0];
     const { groupId, groupName } = extractGroupInfo(c);
 
-    let totalInvoiced = c.totalInvoiced || 0;
-    if (!totalInvoiced && c.id) {
+    // Tính tổng chi tiêu chỉ từ 2 chi nhánh MMK (KiotViet totalInvoiced là toàn hệ thống)
+    let totalInvoiced = 0;
+    if (c.id) {
       try {
-        const detail  = await kiotFetch(`/customers/${c.id}`);
-        totalInvoiced = detail.totalInvoiced || detail.totalRevenue || 0;
+        const allInvs = await getAllInvoicesByCustomer(c.id);
+        totalInvoiced = allInvs.reduce((sum, inv) => sum + (inv.total || inv.totalPayment || 0), 0);
       } catch { /* bỏ qua */ }
     }
 
